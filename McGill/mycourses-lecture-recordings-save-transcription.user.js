@@ -2,6 +2,8 @@
 // @name         MyCourses Lecture Recordings Save Transcription
 // @namespace    https://mycourses2.mcgill.ca/
 // @version      1.0.1
+// @updateURL    https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-lecture-recordings-save-transcription.user.js
+// @downloadURL  https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-lecture-recordings-save-transcription.user.js
 // @description  Adds a button to save the current lecture recording transcript as a TXT file.
 // @match        https://mycourses2.mcgill.ca/d2l/lp/*
 // @match        https://lrs.mcgill.ca/*

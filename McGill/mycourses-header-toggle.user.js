@@ -2,6 +2,8 @@
 // @name         MyCourses better PDF View - Header Toggle
 // @namespace    https://tampermonkey.net/
 // @version      0.3
+// @updateURL    https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-header-toggle.user.js
+// @downloadURL  https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-header-toggle.user.js
 // @match        https://mycourses2.mcgill.ca/d2l/le/lessons/*
 // @match        https://mycourses2.mcgill.ca/d2l/lp/*
 // @run-at       document-idle

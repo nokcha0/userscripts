@@ -2,6 +2,8 @@
 // @name         Reddit Blocked Page Redirect
 // @namespace    reddit-block-redirect
 // @version      1.0
+// @updateURL    https://raw.githubusercontent.com/nokcha0/userscripts/main/reddit-block-redirect.user.js
+// @downloadURL  https://raw.githubusercontent.com/nokcha0/userscripts/main/reddit-block-redirect.user.js
 // @description  Redirect to Redlib when it detects a Reddit blocked page
 // @match        https://reddit.com/*
 // @match        https://www.reddit.com/*

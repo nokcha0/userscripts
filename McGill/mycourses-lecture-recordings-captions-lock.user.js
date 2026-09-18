@@ -1,5 +1,8 @@
 // ==UserScript==
 // @name         MyCourses Lecture Recordings Captions Lock
+// @version      1.0.0
+// @updateURL    https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-lecture-recordings-captions-lock.user.js
+// @downloadURL  https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-lecture-recordings-captions-lock.user.js
 // @match        https://mycourses2.mcgill.ca/d2l/lp/*
 // @match        https://lrs.mcgill.ca/*
 // @run-at       document-start

@@ -2,6 +2,8 @@
 // @name         Sporcle Tab to next
 // @namespace    http://tampermonkey.net/
 // @version      1.1
+// @updateURL    https://raw.githubusercontent.com/nokcha0/userscripts/main/sporcle-tab-navigation.user.js
+// @downloadURL  https://raw.githubusercontent.com/nokcha0/userscripts/main/sporcle-tab-navigation.user.js
 // @description  tab / shift tab : next / prev
 // @match        https://www.sporcle.com/games/*
 // @match        https://sporcle.com/games/*

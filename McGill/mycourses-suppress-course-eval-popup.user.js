@@ -2,6 +2,8 @@
 // @name         MyCourses Suppress Mercury Course Evaluation Popup
 // @namespace    http://tampermonkey.net/
 // @version      1.0
+// @updateURL    https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-suppress-course-eval-popup.user.js
+// @downloadURL  https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-suppress-course-eval-popup.user.js
 // @match        https://mycourses2.mcgill.ca/d2l/home*
 // @run-at       document-start
 // @grant        none

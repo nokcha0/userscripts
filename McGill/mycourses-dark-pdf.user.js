@@ -2,6 +2,8 @@
 // @name         MyCourses better PDF View - Dark Mode
 // @namespace    https://tampermonkey.net/
 // @version      0.3
+// @updateURL    https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-dark-pdf.user.js
+// @downloadURL  https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-dark-pdf.user.js
 // @match        https://mycourses2.mcgill.ca/d2l/le/lessons/*
 // @run-at       document-idle
 // @grant        GM_addStyle

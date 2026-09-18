@@ -2,6 +2,8 @@
 // @name         SSMU Fee Opt-Out Automator
 // @namespace    https://horizon.mcgill.ca/
 // @version      1.0
+// @updateURL    https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/Minerva_SSMU_Fee_Opt_Out/minerva-ssmu-fee-opt-out.user.js
+// @downloadURL  https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/Minerva_SSMU_Fee_Opt_Out/minerva-ssmu-fee-opt-out.user.js
 // @description  Batch opt-out fees on Minerva (Request Opt-out -> Opt-out -> Go Back).
 // @match        https://horizon.mcgill.ca/pban1/*
 // @grant        GM_getValue
