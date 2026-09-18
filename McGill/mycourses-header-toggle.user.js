@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MyCourses better PDF View - Header Toggle
 // @namespace    https://tampermonkey.net/
-// @version      0.2
+// @version      0.3
 // @match        https://mycourses2.mcgill.ca/d2l/le/lessons/*
 // @match        https://mycourses2.mcgill.ca/d2l/lp/*
 // @run-at       document-idle
@@ -37,7 +37,18 @@
     lastSig = "",
     lastHidden = null;
 
-  const header = () => qs("header");
+  const header = () => {
+    const navigation = qs("d2l-navigation, d2l-navigation-main-header");
+    if (navigation) return navigation.closest("header");
+
+    return (
+      qsa("header").find(
+        (h) =>
+          h.querySelector("nav") &&
+          !h.closest('dialog, [role="dialog"], .d2l-dialog'),
+      ) || null
+    );
+  };
 
   const frames = () => {
     const fra = qs(".d2l-fra-iframe");
@@ -50,8 +61,13 @@
     return { fra, list: big, sig: "big:" + big.length };
   };
 
-  function ensureBtn() {
-    if (qs(`#${BTN}`)) return;
+  function ensureBtn(h) {
+    const existing = qs(`#${BTN}`);
+    if (!h) {
+      existing?.remove();
+      return;
+    }
+    if (existing) return;
     const b = document.createElement("button");
     b.id = BTN;
     b.type = "button";
@@ -71,9 +87,8 @@
   }
 
   function apply(force = false) {
-    ensureBtn();
-
     const h = header();
+    ensureBtn(h);
     const { fra, list, sig } = frames();
     const curSig = (h ? "h:1|" : "h:0|") + sig;
 
