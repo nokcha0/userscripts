@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         MyCourses Lecture Recordings Save Transcription
 // @namespace    https://mycourses2.mcgill.ca/
-// @version      1.0.1
+// @version      1.0.5
 // @updateURL    https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-lecture-recordings-save-transcription.user.js
 // @downloadURL  https://raw.githubusercontent.com/nokcha0/userscripts/main/McGill/mycourses-lecture-recordings-save-transcription.user.js
 // @description  Adds a button to save the current lecture recording transcript as a TXT file.
@@ -20,6 +20,9 @@
   const XHR_URL = Symbol("transcriptUrl");
 
   let latestCaptionResponse = null;
+  let latestCaptionGuid = null;
+  let cachedRecordings = [];
+  let cachedCourse = null;
 
   function captionRequestInfo(url) {
     const match = String(url).match(
@@ -43,10 +46,31 @@
     };
   }
 
+  function watchResponseInfo(url) {
+    const path = String(url);
+    const captionVtt = path.match(/\/captionsvtt\/([a-f\d-]{36})\.vtt\//i);
+    if (captionVtt) latestCaptionGuid = captionVtt[1];
+    return (
+      captionRequestInfo(path) ||
+      /\/(?:MediaRecordings?|Course)\/(?:dto\/)?[^/?#]+(?:[?#]|$)/i.test(path)
+    );
+  }
+
+  function rememberMetadata(url, value) {
+    const path = String(url);
+    if (/\/MediaRecordings?\/dto\/[^/?#]+(?:[?#]|$)/i.test(path)) {
+      if (Array.isArray(value)) cachedRecordings = value;
+    } else if (/\/Course\/\d+(?:[?#]|$)/i.test(path)) {
+      if (value && typeof value === "object" && !Array.isArray(value))
+        cachedCourse = value;
+    }
+  }
+
   function parseAndRemember(url, value) {
     try {
       const parsed = typeof value === "string" ? JSON.parse(value) : value;
       rememberCaptions(url, parsed);
+      rememberMetadata(url, parsed);
     } catch {}
   }
 
@@ -56,10 +80,11 @@
       xhrProto.__tmTranscriptOriginalOpen = xhrProto.open;
       xhrProto.open = function (method, url) {
         this[XHR_URL] = String(url);
+        const relevant = watchResponseInfo(this[XHR_URL]);
         this.addEventListener(
           "load",
           () => {
-            if (!captionRequestInfo(this[XHR_URL])) return;
+            if (!relevant) return;
             try {
               parseAndRemember(
                 this[XHR_URL],
@@ -80,11 +105,11 @@
       async function patchedFetch(input) {
         const response = await originalFetch.apply(this, arguments);
         const url = typeof input === "string" ? input : input && input.url;
-        if (captionRequestInfo(url)) {
+        if (watchResponseInfo(url)) {
           response
             .clone()
             .json()
-            .then((value) => rememberCaptions(url, value))
+            .then((value) => parseAndRemember(url, value))
             .catch(() => {});
         }
         return response;
@@ -119,11 +144,24 @@
   }
 
   function currentRecording(vm) {
-    if (!vm || !Array.isArray(vm.listofRecordings)) return null;
+    const recordings =
+      vm && Array.isArray(vm.listofRecordings) && vm.listofRecordings.length
+        ? vm.listofRecordings
+        : cachedRecordings;
+    const selectedId = vm && vm.currentRecordingID;
     return (
-      vm.listofRecordings.find(
-        (recording) => String(recording.id) === String(vm.currentRecordingID),
-      ) || null
+      recordings.find((recording) => selectedId && String(recording.id) === String(selectedId)) ||
+      recordings.find(
+        (recording) =>
+          latestCaptionGuid &&
+          String(recording.id).toLowerCase() === latestCaptionGuid.toLowerCase(),
+      ) ||
+      recordings.find(
+        (recording) =>
+          latestCaptionResponse &&
+          String(recording.recordingInt) === latestCaptionResponse.recordingId,
+      ) ||
+      (recordings.length === 1 ? recordings[0] : null)
     );
   }
 
@@ -140,6 +178,7 @@
   function transcriptDetails(doc = document) {
     const vm = findVueContext(doc);
     const recording = currentRecording(vm);
+    const course = vm && vm.currentCourse;
     let captions =
       vm && Array.isArray(vm.allcaptions) && vm.allcaptions.length
         ? vm.allcaptions
@@ -156,7 +195,7 @@
     }
     if (!captions || !captions.length) captions = renderedCaptions(doc);
 
-    return { captions, recording };
+    return { captions, recording, course };
   }
 
   function safeFilenamePart(value) {
@@ -171,6 +210,7 @@
     if (!recording) return "";
 
     const values = [
+      recording.dateTime,
       recording.recordingDate,
       recording.recordingDateTime,
       recording.startDateTime,
@@ -187,11 +227,65 @@
     return "";
   }
 
-  function transcriptFilename(recording) {
-    const course = safeFilenamePart(recording && recording.courseName);
-    const date = recordingDate(recording);
-    const parts = [course, date].filter(Boolean);
-    return parts.length ? `${parts.join(" - ")}.txt` : "lecture-transcription.txt";
+  function contentPathMetadata(value) {
+    const match = String(value || "").match(
+      /\/content\/[^/]+\/([^/]+)\/(20\d{2})(\d{2})(\d{2})_/i,
+    );
+    if (!match) return null;
+    let course = match[1];
+    try {
+      course = decodeURIComponent(course);
+    } catch {}
+    return { course, date: `${match[2]}-${match[3]}-${match[4]}` };
+  }
+
+  function pageRecordingMetadata(doc) {
+    const elements = doc.querySelectorAll(
+      'video[poster], .vjs-poster, .vcard_active [src], .vcard_active [style]',
+    );
+    for (const element of elements) {
+      for (const attribute of ["poster", "src", "style"]) {
+        const value = element.getAttribute(attribute) || "";
+        const metadata = contentPathMetadata(value);
+        if (metadata) return metadata;
+      }
+    }
+
+    const toolbar = [...doc.querySelectorAll(".v-toolbar__title")].find(
+      (element) => /20\d{2}-(?:FALL|WINTER|SUMMER)\s*\//i.test(element.textContent),
+    );
+    const course = toolbar && toolbar.textContent.match(
+      /20\d{2}-(?:FALL|WINTER|SUMMER)\s*\/\s*([A-Z0-9-]+)/i,
+    );
+    const activeDate = doc.querySelector(
+      ".vcard_active .recordingdate, .vcard_active .recordingtitle",
+    );
+    const date = activeDate && activeDate.textContent.match(
+      /\b(20\d{2})\s+([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?\b/i,
+    );
+    const month = date &&
+      ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"]
+        .indexOf(date[2].slice(0, 3).toLowerCase()) + 1;
+
+    return {
+      course: course ? course[1] : "",
+      date: month ? `${date[1]}-${String(month).padStart(2, "0")}-${date[3].padStart(2, "0")}` : "",
+    };
+  }
+
+  function transcriptFilename(recording, courseDetails, doc) {
+    const page = pageRecordingMetadata(doc);
+    const thumbnail = contentPathMetadata(recording && recording.thumbnail);
+    const course =
+      safeFilenamePart(
+        (courseDetails && (courseDetails.courseNameDisplay || courseDetails.courseName)) ||
+          page.course ||
+          (recording && recording.courseName) ||
+          (thumbnail && thumbnail.course) ||
+          (cachedCourse && (cachedCourse.courseNameDisplay || cachedCourse.courseName)),
+      ) || "Lecture";
+    const date = recordingDate(recording) || (thumbnail && thumbnail.date) || page.date || "Undated";
+    return `${course}-${date}-Transcript.txt`;
   }
 
   function saveBlob(win, text, filename) {
@@ -208,7 +302,7 @@
   }
 
   function saveTranscription(win = window) {
-    const { captions, recording } = transcriptDetails(win.document);
+    const { captions, recording, course } = transcriptDetails(win.document);
     const lines = captions
       .filter((caption) => caption && typeof caption.captionText === "string")
       .map((caption) => caption.captionText.trim())
@@ -221,7 +315,7 @@
       return;
     }
 
-    saveBlob(win, `${lines.join("\r\n")}\r\n`, transcriptFilename(recording));
+    saveBlob(win, `${lines.join("\r\n")}\r\n`, transcriptFilename(recording, course, win.document));
   }
 
   function sidebarButtonScore(element) {
